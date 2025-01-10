@@ -13,8 +13,6 @@ map:
 
 <div class="contact-box">
     <form action="https://formspree.io/f/mvggdkeq" method="POST" class="contact-form">
-		<input type="hidden" name="_next" value="https://cheng-builtscan.github.io/contact-success/">
-		
         <label for="name">Full Name</label>
         <input type="text" name="name" id="name" placeholder="Enter your name..." />
 
@@ -35,6 +33,26 @@ map:
         <p><a href="mailto:info@builtscan.com">info@builtscan.com</a></p>
     </div>
 </div>
+
+<script>
+    const form = document.getElementById('contactForm');
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        try {
+            await fetch(form.action, {
+                method: 'POST',
+                body: new FormData(form),
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            window.location.href = '/contact-success/';
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    });
+</script>
 
 <script type="text/javascript">
 	window.mapData = {{ page.map | jsonify }};
