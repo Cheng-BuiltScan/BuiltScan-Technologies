@@ -32,7 +32,8 @@
     		height: auto;  // This maintains aspect ratio
     			img {
         			width: 100%;
-        			height: auto;
+        			height: 100%;
+				object-fit: contain;
     			}
 		}
 	.name {
