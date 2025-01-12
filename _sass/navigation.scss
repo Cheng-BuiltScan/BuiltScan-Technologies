@@ -101,12 +101,10 @@ nav {
             
             &::after {
                 content: " ⌄";
-                font-size: 1.4em;    // Increased from 1.2em
-                margin-left: 4px;
+                font-size: 1.6em;
                 display: inline-block;
-                vertical-align: middle;
-                position: relative;
-                top: -0.1em;
+                vertical-align: -0.25em;
+                margin-left: 4px;
             }
         }
 	
