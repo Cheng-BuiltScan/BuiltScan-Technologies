@@ -101,6 +101,7 @@ nav {
             top: 100%;
 			left: 50%;          // Center align with parent
         	transform: translateX(-50%);  // Center align with parent
+			text-transform: none;
             
             @media #{$mid-point} {
                 text-align: left;
@@ -114,6 +115,7 @@ nav {
                 display: block;
                 font-size: 0.9em;
                 border-bottom: 1px solid rgba(0,0,0,0.1);
+				text-transform: none;
 
                 &:hover {
                     background-color: darken(#fff, 5%);
