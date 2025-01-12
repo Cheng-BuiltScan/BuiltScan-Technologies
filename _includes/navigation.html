@@ -1,19 +1,19 @@
 <nav>
-	<a class="nav-toggle" id="open-nav" href="#">&#9776;</a>
-	<a class="editor-link btn" href="cloudcannon:collections/_data/navigation.yml" class="btn"><strong>&#9998;</strong> Edit navigation</a>
-	{% for link in site.data.navigation %}
-		{% assign class = "" %}
-		{% if link.highlight %}
-			{% assign class = class | append: " highlight" %}
-		{% endif %}
+    <a class="nav-toggle" id="open-nav" href="#">&#9776;</a>
+    <a class="editor-link btn" href="cloudcannon:collections/_data/navigation.yml" class="btn"><strong>&#9998;</strong> Edit navigation</a>
+    {% for link in site.data.navigation %}
+        {% assign class = "" %}
+        {% if link.highlight %}
+            {% assign class = class | append: " highlight" %}
+        {% endif %}
 
-		{% if link.link == page.url %}
-			{% assign class = class | append: " active" %}
-		{% endif %}
+        {% if link.link == page.url %}
+            {% assign class = class | append: " active" %}
+        {% endif %}
 
-		{% if link.children %}
+        {% if link.children %}
             <div class="dropdown">
-                <a href="{% include relative-src.html src=link.link %}" class="dropbtn {{ class }}" {% if link.new_window %}target="_blank"{% endif %}>
+                <a href="#" class="dropbtn {{ class }}" onclick="toggleDropdown(event, this)">
                     {{ link.name }}
                 </a>
                 <div class="dropdown-content">
@@ -25,6 +25,33 @@
         {% else %}
             <a href="{% include relative-src.html src=link.link %}" class="{{ class }}" {% if link.new_window %}target="_blank"{% endif %}>{{ link.name }}</a>
         {% endif %}
-
-	{% endfor %}
+    {% endfor %}
 </nav>
+
+<script>
+function toggleDropdown(event, element) {
+    event.preventDefault();
+    // Close all other dropdowns
+    var dropdowns = document.getElementsByClassName("dropdown-content");
+    for (var i = 0; i < dropdowns.length; i++) {
+        if (dropdowns[i] !== element.nextElementSibling) {
+            dropdowns[i].classList.remove("show");
+        }
+    }
+    // Toggle current dropdown
+    element.nextElementSibling.classList.toggle("show");
+}
+
+// Close dropdown when clicking outside
+window.onclick = function(event) {
+    if (!event.target.matches('.dropbtn')) {
+        var dropdowns = document.getElementsByClassName("dropdown-content");
+        for (var i = 0; i < dropdowns.length; i++) {
+            var openDropdown = dropdowns[i];
+            if (openDropdown.classList.contains('show')) {
+                openDropdown.classList.remove('show');
+            }
+        }
+    }
+}
+</script>
