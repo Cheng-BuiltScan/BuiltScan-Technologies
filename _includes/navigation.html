@@ -13,7 +13,7 @@
 
         {% if link.children %}
             <div class="dropdown">
-                <a href="#" class="dropbtn {{ class }}" onclick="toggleDropdown(event, this)">
+                <a href="#" class="dropbtn {{ class }}">
                     {{ link.name }}
                 </a>
                 <div class="dropdown-content">
@@ -27,31 +27,3 @@
         {% endif %}
     {% endfor %}
 </nav>
-
-<script>
-function toggleDropdown(event, element) {
-    event.preventDefault();
-    // Close all other dropdowns
-    var dropdowns = document.getElementsByClassName("dropdown-content");
-    for (var i = 0; i < dropdowns.length; i++) {
-        if (dropdowns[i] !== element.nextElementSibling) {
-            dropdowns[i].classList.remove("show");
-        }
-    }
-    // Toggle current dropdown
-    element.nextElementSibling.classList.toggle("show");
-}
-
-// Close dropdown when clicking outside
-window.onclick = function(event) {
-    if (!event.target.matches('.dropbtn')) {
-        var dropdowns = document.getElementsByClassName("dropdown-content");
-        for (var i = 0; i < dropdowns.length; i++) {
-            var openDropdown = dropdowns[i];
-            if (openDropdown.classList.contains('show')) {
-                openDropdown.classList.remove('show');
-            }
-        }
-    }
-}
-</script>

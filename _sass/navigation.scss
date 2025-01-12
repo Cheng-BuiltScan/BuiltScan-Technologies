@@ -84,52 +84,52 @@ nav {
 	}
 
 	.dropdown {
-        position: relative;
-        display: inline-block;
-
-        @media #{$mid-point} {
-            display: inline;
-        }
-
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            background-color: #fff;
-            min-width: 160px;
-            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-            z-index: 100;
-            top: 100%;
-			left: 50%;          // Center align with parent
-        	transform: translateX(-50%);  // Center align with parent
+		position: relative;
+		display: inline-block;
+	
+		@media #{$mid-point} {
+			display: inline;
+		}
+	
+		&:hover .dropdown-content {  // Add this hover rule
+			display: block;
+		}
+	
+		.dropdown-content {
+			display: none;
+			position: absolute;
+			background-color: #fff;
+			min-width: 160px;
+			box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+			z-index: 100;
+			top: 100%;
+			left: 50%;
+			transform: translateX(-50%);
 			text-transform: none;
-            
-            @media #{$mid-point} {
-                text-align: left;
-				left: 0;        // Align with left edge of parent
-            	transform: none; // Remove center transform
-            }
-
-            a {
-                color: $brand-color;
-                padding: 12px 16px;
-                display: block;
-                font-size: 0.9em;
-                border-bottom: 1px solid rgba(0,0,0,0.1);
+			
+			@media #{$mid-point} {
+				text-align: left;
+				left: 0;
+				transform: none;
+			}
+	
+			a {
+				color: $brand-color;
+				padding: 12px 16px;
+				display: block;
+				font-size: 0.9em;
+				border-bottom: 1px solid rgba(0,0,0,0.1);
 				text-transform: none;
-
-                &:hover {
-                    background-color: darken(#fff, 5%);
-                    color: darken($brand-color, 10%);
-                }
-
-                @media #{$mid-point} {
-                    display: block;
-                }
-            }
-        }
-
-        .dropdown-content.show {
-            display: block;
-        }
+	
+				&:hover {
+					background-color: darken(#fff, 5%);
+					color: darken($brand-color, 10%);
+				}
+	
+				@media #{$mid-point} {
+					display: block;
+				}
+			}
+		}
 	}
 }
