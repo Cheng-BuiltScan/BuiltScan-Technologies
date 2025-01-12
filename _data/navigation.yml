@@ -4,15 +4,15 @@
   highlight: false
   children:
     - name: Robotic Inspection
-      link: /
+      link: /solutions/Robotic inspection/
       new_window: false
       highlight: false
     - name: AI powered data analysis
-      link: /
+      link: /solutions/AI powered data analysis/
       new_window: false
       highlight: false
     - name: Digital Twin platform for visualisation, multi-layer data management, and decision support
-      link: /
+      link: /solutions/Digital Twin
       new_window: false
       highlight: false
 - name: Pricing
