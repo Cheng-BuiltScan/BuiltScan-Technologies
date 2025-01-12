@@ -99,9 +99,13 @@ nav {
             box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
             z-index: 100;
             top: 100%;
+			left: 50%;          // Center align with parent
+        	transform: translateX(-50%);  // Center align with parent
             
             @media #{$mid-point} {
                 text-align: left;
+				left: 0;        // Align with left edge of parent
+            	transform: none; // Remove center transform
             }
 
             a {
