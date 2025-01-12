@@ -96,15 +96,13 @@ nav {
 		}
 
 		.dropbtn {
-            display: inline-flex;
-            align-items: center;
-            
             &::after {
-                content: " ⌄";
+                content: " ⌵";
                 font-size: 1.6em;
-                display: inline-block;
-                vertical-align: -0.25em;
                 margin-left: 4px;
+                display: inline-block;
+                position: relative;
+                top: 0.1em;  // Adjust this value to move it up
             }
         }
 	
