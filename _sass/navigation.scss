@@ -94,6 +94,18 @@ nav {
 		&:hover .dropdown-content {  // Add this hover rule
 			display: block;
 		}
+
+		.dropbtn {
+            display: inline-flex;
+            align-items: center;
+            
+            &::after {
+                content: " ⌄";
+                font-size: 1.2em;
+                margin-left: 3px;
+                line-height: 1;
+            }
+        }
 	
 		.dropdown-content {
 			display: none;
