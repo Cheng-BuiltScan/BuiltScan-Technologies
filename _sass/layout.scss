@@ -68,10 +68,23 @@ header {
 	position: relative;
 }
 
-video.screenshot {
-    @extend .screenshot;
-    object-fit: contain;
-    background-color: transparent;
+.video-container {
+    width: 500px;        // Set specific width
+    max-width: 100%;     // Ensure responsiveness
+    display: block;
+    box-shadow: 0 1px 0 #ccc, 0 1px 0 1px #eee;
+    border-radius: 2px;
+    margin-left: auto;
+    margin-right: auto;
+    position: relative;
+    overflow: hidden;
+    
+    video {
+        width: 100%;
+        height: auto;     // Auto height maintains aspect ratio
+        object-fit: contain;  // Ensures video maintains natural proportions
+        display: block;
+    }
 }
 
 section {
