@@ -12,8 +12,8 @@
     link: /about/
   - name: Contact us
     link: /contact/
-  - name: Blog
-    link: /blog/
+#  - name: Blog
+#    link: /blog/
 
 #- links:
 #  - name: Pricing
