@@ -42,25 +42,6 @@
 	}
 }
 
-.sub-hero {
-    text-align: center;
-    padding: 50px 0;
-	background: transparent;
-    
-    .text-container {
-        max-width: 800px;
-    }
-    
-    h1 {
-        margin: 0 auto;
-    }
-    
-    .subtext {
-        margin: 20px auto 0 auto;
-    }
-}
-
-
 @media #{$desktop} {
 	.flex {
 		@include flexbox;
