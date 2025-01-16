@@ -12,7 +12,7 @@ description: >-
 			<div class="regular-image"><img src="{% include relative-src.html src=person.image_path %}" alt="{{ person.name }}"/></div>
 			<div class="name"><a target="_blank" href="{{ person.personal_link }}">{{ person.name }}</a></div>
 			<div class="position">{{ person.position }}</div>
-			<div class="email">{{ person.personal_email }}</div>
+			<div class="email"><a href="mailto:{{ person.personal_email }}">{{ person.personal_email }}</a></div>
 			<div class="blurb">{{ person.blurb }}</div>
 		</li>
 	{% endfor %}
