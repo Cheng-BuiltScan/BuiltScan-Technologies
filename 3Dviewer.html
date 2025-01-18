@@ -92,6 +92,8 @@ title: Netball Manurewa Texture - Thermal Inspection
     let selectedPoints = [];
     let measurementLine;
     let measurementText;
+    let dynamicLine; // For showing line while measuring
+    let pointMarkers = []; // For showing selected points
 
     function init() {
         scene = new THREE.Scene();
@@ -154,6 +156,7 @@ title: Netball Manurewa Texture - Thermal Inspection
 
         // Add click event listener for measurements
         renderer.domElement.addEventListener('click', onModelClick);
+        renderer.domElement.addEventListener('mousemove', onMouseMove);
 
         animate();
     }
@@ -199,13 +202,22 @@ title: Netball Manurewa Texture - Thermal Inspection
         toggleMeasureMenu();
     }
 
+    function createPointMarker(position) {
+        const geometry = new THREE.SphereGeometry(0.1);
+        const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        const sphere = new THREE.Mesh(geometry, material);
+        sphere.position.copy(position);
+        scene.add(sphere);
+        pointMarkers.push(sphere);
+        return sphere;
+    }
+
     function clearMeasurement() {
-        if (measurementLine) {
-            scene.remove(measurementLine);
-        }
-        if (measurementText) {
-            scene.remove(measurementText);
-        }
+        if (measurementLine) scene.remove(measurementLine);
+        if (measurementText) scene.remove(measurementText);
+        if (dynamicLine) scene.remove(dynamicLine);
+        pointMarkers.forEach(marker => scene.remove(marker));
+        pointMarkers = [];
     }
 
     function onModelClick(event) {
@@ -223,20 +235,73 @@ title: Netball Manurewa Texture - Thermal Inspection
 
         if (intersects.length > 0) {
             const point = intersects[0].point;
+            createPointMarker(point);
             selectedPoints.push(point);
 
-            if (measurementMode === 'distance' && selectedPoints.length === 2) {
-                showDistance();
-            } else if (measurementMode === 'angle' && selectedPoints.length === 3) {
-                showAngle();
+            if (measurementMode === 'distance') {
+                if (selectedPoints.length === 2) {
+                    showDistance();
+                    // Don't reset measurement mode, allow continuous measurements
+                    selectedPoints = [];
+                    if (dynamicLine) {
+                        scene.remove(dynamicLine);
+                        dynamicLine = null;
+                    }
+                }
+            } else if (measurementMode === 'angle') {
+                if (selectedPoints.length === 3) {
+                    showAngle();
+                    // Don't reset measurement mode, allow continuous measurements
+                    selectedPoints = [];
+                    if (dynamicLine) {
+                        scene.remove(dynamicLine);
+                        dynamicLine = null;
+                    }
+                }
             }
+        }
+    }
+
+    function onMouseMove(event) {
+        if (measurementMode === 'none' || selectedPoints.length === 0) return;
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        
+        const rect = renderer.domElement.getBoundingClientRect();
+        mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(scene.children, true);
+
+        if (intersects.length > 0) {
+            updateDynamicLine(intersects[0].point);
+        }
+    }
+
+    function updateDynamicLine(currentPoint) {
+        if (dynamicLine) scene.remove(dynamicLine);
+
+        if (measurementMode === 'distance') {
+            const points = [selectedPoints[0], currentPoint];
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ color: 0xffff00, dashSize: 1, gapSize: 1 });
+            dynamicLine = new THREE.Line(geometry, material);
+            scene.add(dynamicLine);
+        } else if (measurementMode === 'angle' && selectedPoints.length === 2) {
+            const points = [selectedPoints[0], selectedPoints[1], selectedPoints[0], currentPoint];
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ color: 0xffff00 });
+            dynamicLine = new THREE.Line(geometry, material);
+            scene.add(dynamicLine);
         }
     }
 
     function showDistance() {
         const start = selectedPoints[0];
         const end = selectedPoints[1];
-        const distance = start.distanceTo(end);
+        const distance = start.distanceTo(end) * 100; // Convert to centimeters
 
         const geometry = new THREE.BufferGeometry().setFromPoints(selectedPoints);
         const material = new THREE.LineBasicMaterial({ color: 0xffff00 });
@@ -244,13 +309,10 @@ title: Netball Manurewa Texture - Thermal Inspection
         scene.add(measurementLine);
 
         const midPoint = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
-        const textSprite = createTextSprite(`${distance.toFixed(2)} units`);
+        const textSprite = createTextSprite(`${distance.toFixed(1)} cm`);
         textSprite.position.copy(midPoint);
         measurementText = textSprite;
         scene.add(textSprite);
-
-        measurementMode = 'none';
-        selectedPoints = [];
     }
 
     function showAngle() {
@@ -279,14 +341,40 @@ title: Netball Manurewa Texture - Thermal Inspection
     function createTextSprite(message) {
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
-        context.font = 'Bold 20px Arial';
-        context.fillStyle = 'rgba(255,255,0,1)';
-        context.fillText(message, 0, 24);
+        
+        // Set up text style
+        const fontSize = 24;
+        context.font = `Bold ${fontSize}px Arial`;
+        
+        // Measure text for background
+        const metrics = context.measureText(message);
+        const textWidth = metrics.width;
+        const textHeight = fontSize;
+        
+        // Add padding
+        const padding = 8;
+        canvas.width = textWidth + padding * 2;
+        canvas.height = textHeight + padding * 2;
+        
+        // Draw background
+        context.fillStyle = 'white';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw text
+        context.font = `Bold ${fontSize}px Arial`;
+        context.fillStyle = '#0066cc'; // Blue color
+        context.fillText(message, padding, textHeight + padding/2);
 
         const texture = new THREE.CanvasTexture(canvas);
-        const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+        texture.minFilter = THREE.LinearFilter;
+        const spriteMaterial = new THREE.SpriteMaterial({ 
+            map: texture,
+            sizeAttenuation: false // This makes the sprite size independent of distance
+        });
         const sprite = new THREE.Sprite(spriteMaterial);
-        sprite.scale.set(2, 1, 1);
+        
+        // Scale sprite to maintain readable size
+        sprite.scale.set(0.05, 0.05 * canvas.height/canvas.width, 1);
 
         return sprite;
     }
