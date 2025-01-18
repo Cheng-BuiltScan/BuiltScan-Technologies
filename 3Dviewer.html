@@ -2,7 +2,68 @@
 title: 3D Model Viewer
 description: View our 3D models
 ---
-<div id="viewer-container" style="width: 100%; height: 600px;"></div>
+<style>
+    #viewer-container {
+        width: 100%;
+        height: calc(100vh - 100px);
+        position: relative;
+    }
+
+    .viewer-controls {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.5);
+        padding: 10px;
+        border-radius: 5px;
+        display: flex;
+        gap: 10px;
+    }
+
+    .control-button {
+        background: none;
+        border: none;
+        color: white;
+        cursor: pointer;
+        padding: 5px 10px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .control-button:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 3px;
+    }
+</style>
+
+<div id="viewer-container">
+    <div class="viewer-controls">
+        <button class="control-button" onclick="setOrbitMode()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 2a10 10 0 0 1 10 10"></path>
+            </svg>
+            Orbit
+        </button>
+        <button class="control-button" onclick="setPanMode()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M5 9l7-7 7 7"></path>
+                <path d="M5 15l7 7 7-7"></path>
+            </svg>
+            Pan
+        </button>
+        <button class="control-button" onclick="setZoomMode()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="M21 21l-4.35-4.35"></path>
+                <path d="M11 8v6M8 11h6"></path>
+            </svg>
+            Zoom
+        </button>
+    </div>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -10,6 +71,7 @@ description: View our 3D models
 
 <script>
     let scene, camera, renderer, controls;
+    let currentMode = 'orbit';
 
     function init() {
         scene = new THREE.Scene();
@@ -23,19 +85,27 @@ description: View our 3D models
         renderer.setSize(container.clientWidth, container.clientHeight);
         container.appendChild(renderer.domElement);
 
+        // Updated controls setup
         controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
+        controls.enablePan = true;
+        controls.panSpeed = 1.0;
+        controls.enableZoom = true;
+        controls.mouseButtons = {
+            LEFT: THREE.MOUSE.ROTATE,
+            MIDDLE: THREE.MOUSE.PAN,
+            RIGHT: THREE.MOUSE.DOLLY
+        };
 
         // Load GLB model
         const loader = new THREE.GLTFLoader();
         loader.load(
-            '{{ site.baseurl }}/models/NetballThermal.glb',  // Update with your GLB path
+            '{{ site.baseurl }}/models/NetballThermal.glb',
             function(gltf) {
                 const model = gltf.scene;
                 scene.add(model);
                 
-                // Center and adjust camera to model
                 const box = new THREE.Box3().setFromObject(model);
                 const center = box.getCenter(new THREE.Vector3());
                 const size = box.getSize(new THREE.Vector3());
@@ -60,13 +130,28 @@ description: View our 3D models
         animate();
     }
 
+    // Add these new functions
+    function setOrbitMode() {
+        currentMode = 'orbit';
+        controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE;
+    }
+
+    function setPanMode() {
+        currentMode = 'pan';
+        controls.mouseButtons.LEFT = THREE.MOUSE.PAN;
+    }
+
+    function setZoomMode() {
+        currentMode = 'zoom';
+        controls.mouseButtons.LEFT = THREE.MOUSE.DOLLY;
+    }
+
+    // Your existing animate and resize functions
     function animate() {
         requestAnimationFrame(animate);
         controls.update();
         renderer.render(scene, camera);
     }
-
-    window.addEventListener('resize', onWindowResize, false);
 
     function onWindowResize() {
         const container = document.getElementById('viewer-container');
@@ -75,5 +160,6 @@ description: View our 3D models
         renderer.setSize(container.clientWidth, container.clientHeight);
     }
 
+    window.addEventListener('resize', onWindowResize, false);
     init();
 </script>
