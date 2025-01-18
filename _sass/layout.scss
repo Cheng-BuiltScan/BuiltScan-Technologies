@@ -199,19 +199,20 @@ blockquote:before {
 
 // new class specifically for the 3D model viewer
 .model-viewer-wrapper {
-    width: 100%;
-    padding: 0;
-    background: #fff;
+    width: 100vw;              // Use viewport width
+    margin-left: calc(-50vw + 50%);  // Negative margin trick to break out of container
+    margin-right: calc(-50vw + 50%);
+    background: #f0f0f0;
     
     .container {
         max-width: 100%;
         padding: 0;
+        margin: 0;
     }
-}
 
-.model-viewer-container {
-    width: 100%;
-    height: 600px;
-    position: relative;
-    background: #f0f0f0;
+    .model-viewer-container {
+        width: 100%;
+        height: 600px;
+        position: relative;
+    }
 }
