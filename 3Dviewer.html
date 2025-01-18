@@ -343,8 +343,8 @@ title: Netball Manurewa Texture - Thermal Inspection
         const context = canvas.getContext('2d');
         
         // Larger font size and padding
-        const fontSize = 24;  // Increased font size
-        const padding = 8;   // Increased padding
+        const fontSize = 16;  // Increased font size
+        const padding = 6;   // Increased padding
         
         // Set font first to measure text
         context.font = `Bold ${fontSize}px Arial`;
@@ -371,7 +371,8 @@ title: Netball Manurewa Texture - Thermal Inspection
         texture.minFilter = THREE.LinearFilter;
         const spriteMaterial = new THREE.SpriteMaterial({
             map: texture,
-            sizeAttenuation: false  // Makes the sprite size independent of distance
+            sizeAttenuation: false,  // Makes the sprite size independent of distance
+            depthTest: false
         });
 
         const sprite = new THREE.Sprite(spriteMaterial);
@@ -383,6 +384,9 @@ title: Netball Manurewa Texture - Thermal Inspection
             scaleFactor * canvas.height,
             1
         );
+
+        // Ensure sprite renders on top
+        sprite.renderOrder = 999;
 
         return sprite;
     }
