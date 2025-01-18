@@ -64,6 +64,18 @@ title: Netball Manurewa Texture - Thermal Inspection
                     </svg>
                     Zoom
                 </button>
+                <div class="measurement-control">
+                    <button class="control-button" onclick="toggleMeasureMenu()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M2 12h20M2 12v-2M22 12v-2M7 12v-5M12 12V5M17 12V7"></path>
+                        </svg>
+                        Measure
+                    </button>
+                    <div class="measure-menu" id="measureMenu">
+                        <button onclick="setDistanceMeasure()">Distance</button>
+                        <button onclick="setAngleMeasure()">Angle</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -76,6 +88,10 @@ title: Netball Manurewa Texture - Thermal Inspection
 <script>
     let scene, camera, renderer, controls;
     let currentMode = 'orbit';
+    let measurementMode = 'none';
+    let selectedPoints = [];
+    let measurementLine;
+    let measurementText;
 
     function init() {
         scene = new THREE.Scene();
@@ -136,26 +152,145 @@ title: Netball Manurewa Texture - Thermal Inspection
         directionalLight.position.set(0, 1, 0);
         scene.add(directionalLight);
 
+        // Add click event listener for measurements
+        renderer.domElement.addEventListener('click', onModelClick);
+
         animate();
     }
 
-    // Add these new functions
+    // Viewing mode controls
     function setOrbitMode() {
         currentMode = 'orbit';
+        measurementMode = 'none';
         controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE;
     }
 
     function setPanMode() {
         currentMode = 'pan';
+        measurementMode = 'none';
         controls.mouseButtons.LEFT = THREE.MOUSE.PAN;
     }
 
     function setZoomMode() {
         currentMode = 'zoom';
+        measurementMode = 'none';
         controls.mouseButtons.LEFT = THREE.MOUSE.DOLLY;
     }
 
-    // Your existing animate and resize functions
+    // Measurement controls
+    function toggleMeasureMenu() {
+        const menu = document.getElementById('measureMenu');
+        menu.classList.toggle('show');
+    }
+
+    function setDistanceMeasure() {
+        measurementMode = 'distance';
+        currentMode = 'measure';
+        selectedPoints = [];
+        clearMeasurement();
+        toggleMeasureMenu();
+    }
+
+    function setAngleMeasure() {
+        measurementMode = 'angle';
+        currentMode = 'measure';
+        selectedPoints = [];
+        clearMeasurement();
+        toggleMeasureMenu();
+    }
+
+    function clearMeasurement() {
+        if (measurementLine) {
+            scene.remove(measurementLine);
+        }
+        if (measurementText) {
+            scene.remove(measurementText);
+        }
+    }
+
+    function onModelClick(event) {
+        if (measurementMode === 'none') return;
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        
+        const rect = renderer.domElement.getBoundingClientRect();
+        mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(scene.children, true);
+
+        if (intersects.length > 0) {
+            const point = intersects[0].point;
+            selectedPoints.push(point);
+
+            if (measurementMode === 'distance' && selectedPoints.length === 2) {
+                showDistance();
+            } else if (measurementMode === 'angle' && selectedPoints.length === 3) {
+                showAngle();
+            }
+        }
+    }
+
+    function showDistance() {
+        const start = selectedPoints[0];
+        const end = selectedPoints[1];
+        const distance = start.distanceTo(end);
+
+        const geometry = new THREE.BufferGeometry().setFromPoints(selectedPoints);
+        const material = new THREE.LineBasicMaterial({ color: 0xffff00 });
+        measurementLine = new THREE.Line(geometry, material);
+        scene.add(measurementLine);
+
+        const midPoint = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
+        const textSprite = createTextSprite(`${distance.toFixed(2)} units`);
+        textSprite.position.copy(midPoint);
+        measurementText = textSprite;
+        scene.add(textSprite);
+
+        measurementMode = 'none';
+        selectedPoints = [];
+    }
+
+    function showAngle() {
+        const vertex = selectedPoints[0];
+        const point1 = selectedPoints[1];
+        const point2 = selectedPoints[2];
+
+        const vector1 = new THREE.Vector3().subVectors(point1, vertex);
+        const vector2 = new THREE.Vector3().subVectors(point2, vertex);
+        const angle = vector1.angleTo(vector2) * (180 / Math.PI);
+
+        const geometry = new THREE.BufferGeometry().setFromPoints([vertex, point1, vertex, point2]);
+        const material = new THREE.LineBasicMaterial({ color: 0xffff00 });
+        measurementLine = new THREE.Line(geometry, material);
+        scene.add(measurementLine);
+
+        const textSprite = createTextSprite(`${angle.toFixed(1)}°`);
+        textSprite.position.copy(vertex);
+        measurementText = textSprite;
+        scene.add(textSprite);
+
+        measurementMode = 'none';
+        selectedPoints = [];
+    }
+
+    function createTextSprite(message) {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        context.font = 'Bold 20px Arial';
+        context.fillStyle = 'rgba(255,255,0,1)';
+        context.fillText(message, 0, 24);
+
+        const texture = new THREE.CanvasTexture(canvas);
+        const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+        const sprite = new THREE.Sprite(spriteMaterial);
+        sprite.scale.set(2, 1, 1);
+
+        return sprite;
+    }
+
     function animate() {
         requestAnimationFrame(animate);
         controls.update();
@@ -165,13 +300,14 @@ title: Netball Manurewa Texture - Thermal Inspection
     function onWindowResize() {
         const container = document.getElementById('viewer-container');
         const aspect = container.clientWidth / container.clientHeight;
-    
+        
         camera.aspect = aspect;
         camera.updateProjectionMatrix();
-    
+        
         renderer.setSize(container.clientWidth, container.clientHeight);
     }
 
+    // Event listeners
     window.addEventListener('resize', onWindowResize, false);
     init();
 </script>

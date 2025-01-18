@@ -1,0 +1,87 @@
+// Main viewer wrapper
+.model-viewer-wrapper {
+    width: 100vw;              // Use viewport width
+    margin-left: calc(-50vw + 50%);  // Negative margin trick to break out of container
+    margin-right: calc(-50vw + 50%);
+    background: #f0f0f0;
+    
+    .container {
+        max-width: 100%;
+        padding: 0;
+        margin: 0;
+    }
+
+    .model-viewer-container {
+        width: 100%;
+        height: 600px;
+        position: relative;
+    }
+}
+
+// Control panel
+.viewer-controls {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.5);
+    padding: 10px;
+    border-radius: 5px;
+    display: flex;
+    gap: 10px;
+}
+
+// Control buttons
+.control-button {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 5px 10px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 3px;
+    }
+}
+
+// Measurement control
+.measurement-control {
+    position: relative;
+    display: inline-block;
+}
+
+// Measurement menu
+.measure-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 4px;
+    padding: 5px;
+    margin-top: 5px;
+
+    &.show {
+        display: block;
+    }
+
+    button {
+        display: block;
+        width: 100%;
+        padding: 5px 10px;
+        color: white;
+        background: none;
+        border: none;
+        cursor: pointer;
+        text-align: left;
+
+        &:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+    }
+}
+
