@@ -342,39 +342,47 @@ title: Netball Manurewa Texture - Thermal Inspection
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
         
-        // Set up text style
-        const fontSize = 24;
-        context.font = `Bold ${fontSize}px Arial`;
+        // Larger font size and padding
+        const fontSize = 48;  // Increased font size
+        const padding = 16;   // Increased padding
         
-        // Measure text for background
+        // Set font first to measure text
+        context.font = `Bold ${fontSize}px Arial`;
         const metrics = context.measureText(message);
-        const textWidth = metrics.width;
+        
+        // Calculate text height (approximate using fontSize)
         const textHeight = fontSize;
         
-        // Add padding
-        const padding = 8;
-        canvas.width = textWidth + padding * 2;
-        canvas.height = textHeight + padding * 2;
+        // Set canvas size including padding
+        canvas.width = metrics.width + (padding * 2);
+        canvas.height = textHeight + (padding * 2);
         
-        // Draw background
+        // Clear and draw background
         context.fillStyle = 'white';
         context.fillRect(0, 0, canvas.width, canvas.height);
         
         // Draw text
-        context.font = `Bold ${fontSize}px Arial`;
-        context.fillStyle = '#0066cc'; // Blue color
-        context.fillText(message, padding, textHeight + padding/2);
+        context.font = `Bold ${fontSize}px Arial`;  // Need to set font again after canvas resize
+        context.fillStyle = '#0066cc';
+        context.textBaseline = 'middle';  // Align text vertically
+        context.fillText(message, padding, canvas.height/2);
 
         const texture = new THREE.CanvasTexture(canvas);
         texture.minFilter = THREE.LinearFilter;
-        const spriteMaterial = new THREE.SpriteMaterial({ 
+        const spriteMaterial = new THREE.SpriteMaterial({
             map: texture,
-            sizeAttenuation: false // This makes the sprite size independent of distance
+            sizeAttenuation: false  // Makes the sprite size independent of distance
         });
+
         const sprite = new THREE.Sprite(spriteMaterial);
         
-        // Scale sprite to maintain readable size
-        sprite.scale.set(0.05, 0.05 * canvas.height/canvas.width, 1);
+        // Adjust scale for better visibility
+        const scaleFactor = 0.01;  // Adjust this value to change overall size
+        sprite.scale.set(
+            scaleFactor * canvas.width,
+            scaleFactor * canvas.height,
+            1
+        );
 
         return sprite;
     }
