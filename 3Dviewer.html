@@ -342,40 +342,49 @@ title: Netball Manurewa Texture - Thermal Inspection
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
         
-        // Smaller font size
-        const fontSize = 10;
-        const padding = 6;
-        const borderRadius = 4;  // Radius for rounded corners
+        // Get device pixel ratio
+        const pixelRatio = window.devicePixelRatio || 1;
+        
+        // Base sizes
+        const fontSize = 10 * pixelRatio;  // Scale font size
+        const padding = 6 * pixelRatio;    // Scale padding
+        const borderRadius = 4 * pixelRatio;  // Scale border radius
         
         // Set font first to measure text
         context.font = `Bold ${fontSize}px Arial`;
         const metrics = context.measureText(message);
         
-        // Calculate text height and baseline positioning
+        // Calculate dimensions
         const textHeight = fontSize;
         
-        // Set canvas size including padding
-        canvas.width = metrics.width + (padding * 2);
-        canvas.height = textHeight + (padding * 2);
+        // Set high-resolution canvas size
+        canvas.width = (metrics.width + (padding * 2));
+        canvas.height = (textHeight + (padding * 2));
         
-        // Clear canvas
-        context.clearRect(0, 0, canvas.width, canvas.height);
+        // Scale canvas by pixel ratio
+        canvas.style.width = canvas.width / pixelRatio + 'px';
+        canvas.style.height = canvas.height / pixelRatio + 'px';
         
-        // Draw rounded rectangle background
+        // Scale context for high DPI
+        context.scale(pixelRatio, pixelRatio);
+        
+        // Draw background
         context.fillStyle = 'white';
         context.beginPath();
-        context.roundRect(0, 0, canvas.width, canvas.height, borderRadius);
+        context.roundRect(0, 0, canvas.width/pixelRatio, canvas.height/pixelRatio, borderRadius/pixelRatio);
         context.fill();
         
         // Draw text
-        context.font = `Bold ${fontSize}px Arial`;
+        context.font = `Bold ${fontSize/pixelRatio}px Arial`;
         context.fillStyle = '#0066cc';
         context.textBaseline = 'middle';
         context.textAlign = 'center';
-        context.fillText(message, canvas.width/2, canvas.height/2);
+        context.fillText(message, canvas.width/(2*pixelRatio), canvas.height/(2*pixelRatio));
 
         const texture = new THREE.CanvasTexture(canvas);
         texture.minFilter = THREE.LinearFilter;
+        texture.anisotropy = renderer.capabilities.getMaxAnisotropy();  // Add anisotropic filtering
+        
         const spriteMaterial = new THREE.SpriteMaterial({
             map: texture,
             sizeAttenuation: false,
@@ -386,8 +395,8 @@ title: Netball Manurewa Texture - Thermal Inspection
         
         const scaleFactor = 0.005;
         sprite.scale.set(
-            scaleFactor * canvas.width,
-            scaleFactor * canvas.height,
+            scaleFactor * canvas.width/pixelRatio,
+            scaleFactor * canvas.height/pixelRatio,
             1
         );
         
