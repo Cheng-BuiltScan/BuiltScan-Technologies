@@ -337,66 +337,59 @@ title: Netball Manurewa Texture - Thermal Inspection
         measurementMode = 'none';
         selectedPoints = [];
     }
-
+    
     function createTextSprite(message) {
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
         
-        // Get device pixel ratio
-        const pixelRatio = window.devicePixelRatio || 1;
+        // Make base size larger then scale down for better quality
+        const fontSize = 32;  // Larger base font size
+        const padding = 12;
+        const borderRadius = 8;
         
-        // Base sizes
-        const fontSize = 10 * pixelRatio;  // Scale font size
-        const padding = 6 * pixelRatio;    // Scale padding
-        const borderRadius = 4 * pixelRatio;  // Scale border radius
-        
-        // Set font first to measure text
+        // Set font and measure
         context.font = `Bold ${fontSize}px Arial`;
         const metrics = context.measureText(message);
         
-        // Calculate dimensions
+        // Set canvas size
         const textHeight = fontSize;
+        canvas.width = Math.ceil(metrics.width + (padding * 2));
+        canvas.height = Math.ceil(textHeight + (padding * 2));
         
-        // Set high-resolution canvas size
-        canvas.width = (metrics.width + (padding * 2));
-        canvas.height = (textHeight + (padding * 2));
-        
-        // Scale canvas by pixel ratio
-        canvas.style.width = canvas.width / pixelRatio + 'px';
-        canvas.style.height = canvas.height / pixelRatio + 'px';
-        
-        // Scale context for high DPI
-        context.scale(pixelRatio, pixelRatio);
-        
-        // Draw background
+        // Clear and set background
         context.fillStyle = 'white';
         context.beginPath();
-        context.roundRect(0, 0, canvas.width/pixelRatio, canvas.height/pixelRatio, borderRadius/pixelRatio);
+        context.roundRect(0, 0, canvas.width, canvas.height, borderRadius);
         context.fill();
         
         // Draw text
-        context.font = `Bold ${fontSize/pixelRatio}px Arial`;
+        context.font = `Bold ${fontSize}px Arial`;
         context.fillStyle = '#0066cc';
         context.textBaseline = 'middle';
         context.textAlign = 'center';
-        context.fillText(message, canvas.width/(2*pixelRatio), canvas.height/(2*pixelRatio));
+        context.fillText(message, canvas.width/2, canvas.height/2);
 
         const texture = new THREE.CanvasTexture(canvas);
+        // Update texture properties for better quality
         texture.minFilter = THREE.LinearFilter;
-        texture.anisotropy = renderer.capabilities.getMaxAnisotropy();  // Add anisotropic filtering
+        texture.magFilter = THREE.LinearFilter;
+        texture.format = THREE.RGBAFormat;
+        texture.generateMipmaps = false;
         
         const spriteMaterial = new THREE.SpriteMaterial({
             map: texture,
             sizeAttenuation: false,
-            depthTest: false
+            depthTest: false,
+            transparent: true
         });
 
         const sprite = new THREE.Sprite(spriteMaterial);
         
-        const scaleFactor = 0.005;
+        // Adjust scale to maintain desired size
+        const scaleFactor = 0.002;  // Smaller scale factor since base size is larger
         sprite.scale.set(
-            scaleFactor * canvas.width/pixelRatio,
-            scaleFactor * canvas.height/pixelRatio,
+            scaleFactor * canvas.width,
+            scaleFactor * canvas.height,
             1
         );
         
