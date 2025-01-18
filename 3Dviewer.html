@@ -4,9 +4,10 @@ description: View our 3D models
 ---
 <style>
     #viewer-container {
-        width: 100%;
-        height: calc(100vh - 100px);
+        width: 100%;    /* Takes full width of parent */
+        height: 600px;  /* Fixed reasonable height */
         position: relative;
+        margin: 0 auto; /* Centers the container */
     }
 
     .viewer-controls {
