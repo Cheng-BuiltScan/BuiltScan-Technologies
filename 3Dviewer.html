@@ -342,52 +342,57 @@ title: Netball Manurewa Texture - Thermal Inspection
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
         
-        // Larger font size and padding
-        const fontSize = 16;  // Increased font size
-        const padding = 6;   // Increased padding
+        // Smaller font size
+        const fontSize = 10;
+        const padding = 6;
+        const borderRadius = 4;  // Radius for rounded corners
         
         // Set font first to measure text
         context.font = `Bold ${fontSize}px Arial`;
         const metrics = context.measureText(message);
         
-        // Calculate text height (approximate using fontSize)
+        // Calculate text height and baseline positioning
         const textHeight = fontSize;
         
         // Set canvas size including padding
         canvas.width = metrics.width + (padding * 2);
         canvas.height = textHeight + (padding * 2);
         
-        // Clear and draw background
+        // Clear canvas
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw rounded rectangle background
         context.fillStyle = 'white';
-        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.beginPath();
+        context.roundRect(0, 0, canvas.width, canvas.height, borderRadius);
+        context.fill();
         
         // Draw text
-        context.font = `Bold ${fontSize}px Arial`;  // Need to set font again after canvas resize
+        context.font = `Bold ${fontSize}px Arial`;
         context.fillStyle = '#0066cc';
-        context.textBaseline = 'middle';  // Align text vertically
-        context.fillText(message, padding, canvas.height/2);
+        context.textBaseline = 'middle';
+        context.textAlign = 'center';
+        context.fillText(message, canvas.width/2, canvas.height/2);
 
         const texture = new THREE.CanvasTexture(canvas);
         texture.minFilter = THREE.LinearFilter;
         const spriteMaterial = new THREE.SpriteMaterial({
             map: texture,
-            sizeAttenuation: false,  // Makes the sprite size independent of distance
+            sizeAttenuation: false,
             depthTest: false
         });
 
         const sprite = new THREE.Sprite(spriteMaterial);
         
-        // Adjust scale for better visibility
-        const scaleFactor = 0.005;  // Adjust this value to change overall size
+        const scaleFactor = 0.005;
         sprite.scale.set(
             scaleFactor * canvas.width,
             scaleFactor * canvas.height,
             1
         );
-
-        // Ensure sprite renders on top
+        
         sprite.renderOrder = 999;
-
+        
         return sprite;
     }
 
