@@ -39,30 +39,34 @@ description: View our 3D models
     }
 </style>
 
-<div id="viewer-container">
-    <div class="viewer-controls">
-        <button class="control-button" onclick="setOrbitMode()">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <circle cx="12" cy="12" r="10"></circle>
-                <path d="M12 2a10 10 0 0 1 10 10"></path>
-            </svg>
-            Orbit
-        </button>
-        <button class="control-button" onclick="setPanMode()">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M5 9l7-7 7 7"></path>
-                <path d="M5 15l7 7 7-7"></path>
-            </svg>
-            Pan
-        </button>
-        <button class="control-button" onclick="setZoomMode()">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <circle cx="11" cy="11" r="8"></circle>
-                <path d="M21 21l-4.35-4.35"></path>
-                <path d="M11 8v6M8 11h6"></path>
-            </svg>
-            Zoom
-        </button>
+<div class="model-viewer-wrapper">
+    <div class="container">
+        <div id="viewer-container" class="model-viewer-container">
+            <div class="viewer-controls">
+                <button class="control-button" onclick="setOrbitMode()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 2a10 10 0 0 1 10 10"></path>
+                    </svg>
+                    Orbit
+                </button>
+                <button class="control-button" onclick="setPanMode()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M5 9l7-7 7 7"></path>
+                        <path d="M5 15l7 7 7-7"></path>
+                    </svg>
+                    Pan
+                </button>
+                <button class="control-button" onclick="setZoomMode()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="M21 21l-4.35-4.35"></path>
+                        <path d="M11 8v6M8 11h6"></path>
+                    </svg>
+                    Zoom
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 
