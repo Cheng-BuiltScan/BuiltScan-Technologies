@@ -323,15 +323,32 @@ title: Netball Manurewa Texture - Thermal Inspection
                     scene.add(line);
                     polygonLines.push(line);
 
-                    // Calculate and display area
+                    // Calculate area
                     const area = calculatePolygonArea(polygonPoints) * 10000; // Convert to square centimeters
-                    const centerPoint = new THREE.Vector3().addVectors(
-                        polygonPoints.reduce((a, b) => a.add(b), new THREE.Vector3()),
-                        new THREE.Vector3()
-                    ).divideScalar(polygonPoints.length + 1);
 
+                    // Calculate true centroid of polygon
+                    let centroidX = 0;
+                    let centroidZ = 0;
+                    let signedArea = 0;
+                    
+                    for (let i = 0; i < polygonPoints.length; i++) {
+                        const j = (i + 1) % polygonPoints.length;
+                        const cross = polygonPoints[i].x * polygonPoints[j].z - polygonPoints[j].x * polygonPoints[i].z;
+                        signedArea += cross;
+                        centroidX += (polygonPoints[i].x + polygonPoints[j].x) * cross;
+                        centroidZ += (polygonPoints[i].z + polygonPoints[j].z) * cross;
+                    }
+                    signedArea /= 2;
+                    centroidX /= (6 * signedArea);
+                    centroidZ /= (6 * signedArea);
+
+                    // Create centroid point with average Y coordinate
+                    const avgY = polygonPoints.reduce((sum, p) => sum + p.y, 0) / polygonPoints.length;
+                    const centroidPoint = new THREE.Vector3(centroidX, avgY, centroidZ);
+
+                    // Display area at centroid
                     const textSprite = createTextSprite(`${area.toFixed(1)} cm²`);
-                    textSprite.position.copy(centerPoint);
+                    textSprite.position.copy(centroidPoint);
                     measurementText = textSprite;
                     scene.add(textSprite);
 
