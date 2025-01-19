@@ -161,6 +161,11 @@ title: Netball Manurewa Texture - Thermal Inspection
         // Add click event listener for measurements
         renderer.domElement.addEventListener('click', onModelClick);
         renderer.domElement.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                cancelMeasurement();
+            }
+        });
 
         animate();
     }
@@ -519,6 +524,29 @@ title: Netball Manurewa Texture - Thermal Inspection
         sprite.renderOrder = 999;
         
         return sprite;
+    }
+
+    function cancelMeasurement() {
+        // Clear current measurement
+        clearMeasurement();
+        
+        // Reset all measurement states
+        measurementMode = 'none';
+        selectedPoints = [];
+        polygonPoints = [];
+        firstPointMarker = null;
+        
+        // Remove dynamic line if exists
+        if (dynamicLine) {
+            scene.remove(dynamicLine);
+            dynamicLine = null;
+        }
+        
+        // Close measurement menu if open
+        const menu = document.getElementById('measureMenu');
+        if (menu.classList.contains('show')) {
+            menu.classList.remove('show');
+        }
     }
 
     function animate() {
