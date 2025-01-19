@@ -74,6 +74,7 @@ title: Netball Manurewa Texture - Thermal Inspection
                     <div class="measure-menu" id="measureMenu">
                         <button onclick="setDistanceMeasure()">Distance</button>
                         <button onclick="setAngleMeasure()">Angle</button>
+                        <button onclick="setAreaMeasure()">Area</button>
                     </div>
                 </div>
             </div>
@@ -94,6 +95,9 @@ title: Netball Manurewa Texture - Thermal Inspection
     let measurementText;
     let dynamicLine; // For showing line while measuring
     let pointMarkers = []; // For showing selected points
+    let polygonPoints = [];
+    let polygonLines = [];
+    let firstPointMarker = null;
 
     function init() {
         scene = new THREE.Scene();
@@ -202,6 +206,49 @@ title: Netball Manurewa Texture - Thermal Inspection
         toggleMeasureMenu();
     }
 
+    function setAreaMeasure() {
+        measurementMode = 'area';
+        currentMode = 'measure';
+        polygonPoints = [];
+        polygonLines = [];
+        firstPointMarker = null;
+        clearMeasurement();
+        toggleMeasureMenu();
+    }
+
+    function updateAreaPolygon(currentPoint) {
+        // Remove previous dynamic line
+        if (dynamicLine) scene.remove(dynamicLine);
+
+        if (polygonPoints.length > 0) {
+            // Draw line from last point to current mouse position
+            const points = [polygonPoints[polygonPoints.length - 1], currentPoint];
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ color: 0xffff00 });
+            dynamicLine = new THREE.Line(geometry, material);
+            scene.add(dynamicLine);
+
+            // If near first point, show connection to it instead
+            if (firstPointMarker && currentPoint.distanceTo(polygonPoints[0]) < 0.5) {
+                const closePoints = [polygonPoints[polygonPoints.length - 1], polygonPoints[0]];
+                const closeGeometry = new THREE.BufferGeometry().setFromPoints(closePoints);
+                if (dynamicLine) scene.remove(dynamicLine);
+                dynamicLine = new THREE.Line(closeGeometry, material);
+                scene.add(dynamicLine);
+            }
+        }
+    }
+
+    function calculatePolygonArea(points) {
+        let area = 0;
+        for (let i = 0; i < points.length; i++) {
+            const j = (i + 1) % points.length;
+            // Using the 3D variant of the shoelace formula
+            area += points[i].x * points[j].z - points[j].x * points[i].z;
+        }
+        return Math.abs(area) / 2;
+    }
+
     function createPointMarker(position) {
         const geometry = new THREE.SphereGeometry(0.1);
         const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
@@ -216,6 +263,8 @@ title: Netball Manurewa Texture - Thermal Inspection
         if (measurementLine) scene.remove(measurementLine);
         if (measurementText) scene.remove(measurementText);
         if (dynamicLine) scene.remove(dynamicLine);
+        polygonLines.forEach(line => scene.remove(line));
+        polygonLines = [];
         pointMarkers.forEach(marker => scene.remove(marker));
         pointMarkers = [];
     }
@@ -235,23 +284,28 @@ title: Netball Manurewa Texture - Thermal Inspection
 
         if (intersects.length > 0) {
             const point = intersects[0].point;
-            createPointMarker(point);
-            selectedPoints.push(point);
 
             if (measurementMode === 'distance') {
+                createPointMarker(point);
+                selectedPoints.push(point);
+
                 if (selectedPoints.length === 2) {
                     showDistance();
-                    // Don't reset measurement mode, allow continuous measurements
+                    // Reset points but keep measurement mode for continuous measurements
                     selectedPoints = [];
                     if (dynamicLine) {
                         scene.remove(dynamicLine);
                         dynamicLine = null;
                     }
                 }
-            } else if (measurementMode === 'angle') {
+            } 
+            else if (measurementMode === 'angle') {
+                createPointMarker(point);
+                selectedPoints.push(point);
+
                 if (selectedPoints.length === 3) {
                     showAngle();
-                    // Don't reset measurement mode, allow continuous measurements
+                    // Reset points but keep measurement mode for continuous measurements
                     selectedPoints = [];
                     if (dynamicLine) {
                         scene.remove(dynamicLine);
@@ -259,11 +313,59 @@ title: Netball Manurewa Texture - Thermal Inspection
                     }
                 }
             }
+            else if (measurementMode === 'area') {
+                // Check if clicking near first point to close polygon
+                if (polygonPoints.length > 2 && firstPointMarker && point.distanceTo(polygonPoints[0]) < 0.5) {
+                    // Complete the polygon
+                    const geometry = new THREE.BufferGeometry().setFromPoints([...polygonPoints, polygonPoints[0]]);
+                    const material = new THREE.LineBasicMaterial({ color: 0xffff00 });
+                    const line = new THREE.Line(geometry, material);
+                    scene.add(line);
+                    polygonLines.push(line);
+
+                    // Calculate and display area
+                    const area = calculatePolygonArea(polygonPoints) * 10000; // Convert to square centimeters
+                    const centerPoint = new THREE.Vector3().addVectors(
+                        polygonPoints.reduce((a, b) => a.add(b), new THREE.Vector3()),
+                        new THREE.Vector3()
+                    ).divideScalar(polygonPoints.length + 1);
+
+                    const textSprite = createTextSprite(`${area.toFixed(1)} cm²`);
+                    textSprite.position.copy(centerPoint);
+                    measurementText = textSprite;
+                    scene.add(textSprite);
+
+                    // Reset for next measurement
+                    polygonPoints = [];
+                    if (dynamicLine) scene.remove(dynamicLine);
+                    firstPointMarker = null;
+                } else {
+                    // Add new point to polygon
+                    const marker = createPointMarker(point);
+                    if (!firstPointMarker) {
+                        firstPointMarker = marker;
+                    }
+                    polygonPoints.push(point);
+
+                    // Draw line to previous point
+                    if (polygonPoints.length > 1) {
+                        const geometry = new THREE.BufferGeometry().setFromPoints([
+                            polygonPoints[polygonPoints.length - 2],
+                            point
+                        ]);
+                        const material = new THREE.LineBasicMaterial({ color: 0xffff00 });
+                        const line = new THREE.Line(geometry, material);
+                        scene.add(line);
+                        polygonLines.push(line);
+                    }
+                }
+            }
         }
     }
 
     function onMouseMove(event) {
-        if (measurementMode === 'none' || selectedPoints.length === 0) return;
+        if (measurementMode === 'none' || 
+            (measurementMode !== 'area' && selectedPoints.length === 0)) return;
 
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
@@ -276,7 +378,11 @@ title: Netball Manurewa Texture - Thermal Inspection
         const intersects = raycaster.intersectObjects(scene.children, true);
 
         if (intersects.length > 0) {
-            updateDynamicLine(intersects[0].point);
+            if (measurementMode === 'area' && polygonPoints.length > 0) {
+                updateAreaPolygon(intersects[0].point);
+            } else {
+                updateDynamicLine(intersects[0].point);
+            }
         }
     }
 
@@ -386,7 +492,7 @@ title: Netball Manurewa Texture - Thermal Inspection
         const sprite = new THREE.Sprite(spriteMaterial);
         
         // Adjust scale to maintain desired size
-        const scaleFactor = 0.002;  // Smaller scale factor since base size is larger
+        const scaleFactor = 0.001;  // Smaller scale factor since base size is larger
         sprite.scale.set(
             scaleFactor * canvas.width,
             scaleFactor * canvas.height,
