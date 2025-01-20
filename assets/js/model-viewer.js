@@ -74,6 +74,18 @@ function init(modelPath) {
         ctx.drawImage(originalTexture.image, 0, 0, size, size);
         
         const texture = new THREE.Texture(canvas);
+        
+        // Copy texture parameters
+        texture.wrapS = originalTexture.wrapS;
+        texture.wrapT = originalTexture.wrapT;
+        texture.magFilter = originalTexture.magFilter;
+        texture.minFilter = originalTexture.minFilter;
+        texture.mapping = originalTexture.mapping;
+        texture.repeat = originalTexture.repeat.clone();
+        texture.offset = originalTexture.offset.clone();
+        texture.center = originalTexture.center.clone();
+        texture.rotation = originalTexture.rotation;
+    
         texture.needsUpdate = true;
         return texture;
     }
@@ -166,17 +178,28 @@ function init(modelPath) {
             // Initial texture setup
             model.traverse((node) => {
                 if (node.isMesh) {
-                    // Enable frustum culling
                     node.frustumCulled = true;
                     
                     if (node.material.map) {
-                        // Store original high-res texture
-                        const originalTexture = node.material.map.clone();
-                        const cacheKey = originalTexture.uuid;
-                        textureCache.set(cacheKey, originalTexture);
+                        // Store original texture settings
+                        const originalTexture = node.material.map;
+                        const originalSettings = {
+                            wrapS: originalTexture.wrapS,
+                            wrapT: originalTexture.wrapT,
+                            repeat: originalTexture.repeat.clone(),
+                            offset: originalTexture.offset.clone(),
+                            center: originalTexture.center.clone(),
+                            rotation: originalTexture.rotation,
+                            mapping: originalTexture.mapping
+                        };
                         
-                        // Set initial low-res texture
-                        node.material.map = loadTextureLOD(originalTexture, 512);
+                        // Create low-res version while maintaining settings
+                        const lowResTexture = loadTextureLOD(originalTexture, 512);
+                        
+                        // Apply original settings
+                        Object.assign(lowResTexture, originalSettings);
+                        
+                        node.material.map = lowResTexture;
                         node.material.needsUpdate = true;
                     }
                 }
