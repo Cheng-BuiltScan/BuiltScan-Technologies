@@ -96,8 +96,7 @@ title: Netball Manurewa Texture - Thermal Inspection
         // Load GLB model
         const loader = new THREE.GLTFLoader();
         loader.load(
-            // Update the URL to use raw content
-            'https://media.githubusercontent.com/media/Cheng-BuiltScan/Cheng-BuiltScan.github.io/main/models/NetballThermal.glb',
+            '{{ site.baseurl }}/models/NetballThermal.glb',
             function(gltf) {
                 const model = gltf.scene;
                 scene.add(model);
