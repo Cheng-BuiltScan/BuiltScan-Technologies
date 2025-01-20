@@ -9,25 +9,42 @@ let pointMarkers = []; // For showing selected points
 let polygonPoints = [];
 let polygonLines = [];
 let firstPointMarker = null;
+let currentModel = null;
+
+function disposeNode(node) {
+    if (node.geometry) {
+        node.geometry.dispose();
+    }
+    
+    if (node.material) {
+        if (node.material.map) node.material.map.dispose();
+        if (node.material.lightMap) node.material.lightMap.dispose();
+        if (node.material.bumpMap) node.material.bumpMap.dispose();
+        if (node.material.normalMap) node.material.normalMap.dispose();
+        if (node.material.specularMap) node.material.specularMap.dispose();
+        if (node.material.envMap) node.material.envMap.dispose();
+        node.material.dispose();
+    }
+}
 
 function init(modelPath) {
+    // Scene setup
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0xf0f0f0);
 
+    // Container and camera setup
     const container = document.getElementById('viewer-container');
     const aspect = container.clientWidth / container.clientHeight;
-
-    // Update camera with correct aspect ratio
     camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 1000);
     camera.position.z = 5;
 
-    // Update renderer
+    // Renderer setup
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(container.clientWidth, container.clientHeight);
     container.appendChild(renderer.domElement);
 
-    // Updated controls setup
+    // Controls setup
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
@@ -40,14 +57,59 @@ function init(modelPath) {
         RIGHT: THREE.MOUSE.DOLLY
     };
 
+    // Loading manager setup
+    const loadingManager = new THREE.LoadingManager();
+    const textureLoader = new THREE.TextureLoader(loadingManager);
+    
+    // Create loading indicator
+    const loadingDiv = document.createElement('div');
+    loadingDiv.style.position = 'absolute';
+    loadingDiv.style.top = '50%';
+    loadingDiv.style.left = '50%';
+    loadingDiv.style.transform = 'translate(-50%, -50%)';
+    loadingDiv.style.background = 'rgba(0,0,0,0.7)';
+    loadingDiv.style.color = 'white';
+    loadingDiv.style.padding = '20px';
+    loadingDiv.style.borderRadius = '5px';
+    container.appendChild(loadingDiv);
+
+    // Configure loading manager
+    loadingManager.onProgress = function(url, itemsLoaded, itemsTotal) {
+        const progress = (itemsLoaded / itemsTotal * 100).toFixed(0);
+        loadingDiv.textContent = `Loading: ${progress}%`;
+    };
+
     // Load GLB model
-    const loader = new THREE.GLTFLoader();
+    const loader = new THREE.GLTFLoader(loadingManager);
     loader.load(
         modelPath,
         function(gltf) {
+            if (currentModel) {
+                // Clean up previous model
+                currentModel.traverse(disposeNode);
+                scene.remove(currentModel);
+            }
+
             const model = gltf.scene;
+            currentModel = model;
+            
+            // Optimize texture loading
+            model.traverse((node) => {
+                if (node.isMesh) {
+                    if (node.material.map) {
+                        // Set texture anisotropy for better quality at angles
+                        node.material.map.anisotropy = renderer.capabilities.getMaxAnisotropy();
+                        
+                        // Enable mipmaps
+                        node.material.map.minFilter = THREE.LinearMipMapLinearFilter;
+                        node.material.map.generateMipmaps = true;
+                    }
+                }
+            });
+
             scene.add(model);
             
+            // Center and fit model
             const box = new THREE.Box3().setFromObject(model);
             const center = box.getCenter(new THREE.Vector3());
             const size = box.getSize(new THREE.Vector3());
@@ -59,30 +121,36 @@ function init(modelPath) {
             
             controls.target.copy(center);
             controls.update();
+
+            // Remove loading indicator when complete
+            container.removeChild(loadingDiv);
         },
         function(xhr) {
             console.log((xhr.loaded / xhr.total * 100) + '% loaded');
         },
         function(error) {
             console.error('Error loading model:', error);
+            loadingDiv.textContent = 'Error loading model';
         }
     );
 
+    // Lighting setup
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambientLight);
+    
     const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
     directionalLight.position.set(0, 1, 0);
     scene.add(directionalLight);
 
-    // Add click event listener for measurements
-    renderer.domElement.addEventListener('click', onModelClick);
-    renderer.domElement.addEventListener('mousemove', onMouseMove);
+    // Add event listeners
     window.addEventListener('resize', onWindowResize, false);
     window.addEventListener('keydown', function(event) {
         if (event.key === 'Escape') {
             cancelMeasurement();
         }
     });
+    renderer.domElement.addEventListener('click', onModelClick);
+    renderer.domElement.addEventListener('mousemove', onMouseMove);
 
     animate();
 }
@@ -480,4 +548,5 @@ function onWindowResize() {
     
     renderer.setSize(container.clientWidth, container.clientHeight);
 }
+
 
