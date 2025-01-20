@@ -39,7 +39,10 @@ function init(modelPath) {
     camera.position.z = 5;
 
     // Renderer setup
-    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer = new THREE.WebGLRenderer({ 
+        antialias: true,
+        powerPreference: "high-performance"
+    });
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(container.clientWidth, container.clientHeight);
     container.appendChild(renderer.domElement);
@@ -57,9 +60,78 @@ function init(modelPath) {
         RIGHT: THREE.MOUSE.DOLLY
     };
 
+    // LOD management setup
+    let textureCache = new Map();
+    let distanceUpdateNeeded = true;
+    let lastCameraPosition = new THREE.Vector3();
+
+    // Function to load different resolution textures
+    function loadTextureLOD(originalTexture, size) {
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(originalTexture.image, 0, 0, size, size);
+        
+        const texture = new THREE.Texture(canvas);
+        texture.needsUpdate = true;
+        return texture;
+    }
+
+    // Function to update LOD based on distance
+    function updateLOD() {
+        if (!currentModel) return;
+        
+        currentModel.traverse((node) => {
+            if (node.isMesh) {
+                const distance = camera.position.distanceTo(node.position);
+                
+                // Skip if object is not in view frustum
+                const frustum = new THREE.Frustum();
+                frustum.setFromProjectionMatrix(
+                    new THREE.Matrix4().multiplyMatrices(
+                        camera.projectionMatrix,
+                        camera.matrixWorldInverse
+                    )
+                );
+                
+                if (!frustum.intersectsObject(node)) {
+                    node.visible = false;
+                    return;
+                }
+                
+                node.visible = true;
+                
+                // Update texture resolution based on distance
+                if (node.material && node.material.map) {
+                    const originalTexture = node.material.map;
+                    const cacheKey = originalTexture.uuid;
+                    
+                    let resolution;
+                    if (distance < 10) {
+                        resolution = 2048;
+                    } else if (distance < 30) {
+                        resolution = 1024;
+                    } else {
+                        resolution = 512;
+                    }
+                    
+                    const lodKey = `${cacheKey}_${resolution}`;
+                    if (!textureCache.has(lodKey)) {
+                        textureCache.set(lodKey, loadTextureLOD(originalTexture, resolution));
+                    }
+                    
+                    if (node.material.map.image.width !== resolution) {
+                        node.material.map = textureCache.get(lodKey);
+                        node.material.needsUpdate = true;
+                    }
+                }
+            }
+        });
+    }
+
     // Loading manager setup
     const loadingManager = new THREE.LoadingManager();
-    const textureLoader = new THREE.TextureLoader(loadingManager);
     
     // Create loading indicator
     const loadingDiv = document.createElement('div');
@@ -73,7 +145,6 @@ function init(modelPath) {
     loadingDiv.style.borderRadius = '5px';
     container.appendChild(loadingDiv);
 
-    // Configure loading manager
     loadingManager.onProgress = function(url, itemsLoaded, itemsTotal) {
         const progress = (itemsLoaded / itemsTotal * 100).toFixed(0);
         loadingDiv.textContent = `Loading: ${progress}%`;
@@ -85,24 +156,28 @@ function init(modelPath) {
         modelPath,
         function(gltf) {
             if (currentModel) {
-                // Clean up previous model
                 currentModel.traverse(disposeNode);
                 scene.remove(currentModel);
             }
 
             const model = gltf.scene;
             currentModel = model;
-            
-            // Optimize texture loading
+
+            // Initial texture setup
             model.traverse((node) => {
                 if (node.isMesh) {
+                    // Enable frustum culling
+                    node.frustumCulled = true;
+                    
                     if (node.material.map) {
-                        // Set texture anisotropy for better quality at angles
-                        node.material.map.anisotropy = renderer.capabilities.getMaxAnisotropy();
+                        // Store original high-res texture
+                        const originalTexture = node.material.map.clone();
+                        const cacheKey = originalTexture.uuid;
+                        textureCache.set(cacheKey, originalTexture);
                         
-                        // Enable mipmaps
-                        node.material.map.minFilter = THREE.LinearMipMapLinearFilter;
-                        node.material.map.generateMipmaps = true;
+                        // Set initial low-res texture
+                        node.material.map = loadTextureLOD(originalTexture, 512);
+                        node.material.needsUpdate = true;
                     }
                 }
             });
@@ -122,7 +197,7 @@ function init(modelPath) {
             controls.target.copy(center);
             controls.update();
 
-            // Remove loading indicator when complete
+            // Remove loading indicator
             container.removeChild(loadingDiv);
         },
         function(xhr) {
@@ -151,6 +226,24 @@ function init(modelPath) {
     });
     renderer.domElement.addEventListener('click', onModelClick);
     renderer.domElement.addEventListener('mousemove', onMouseMove);
+
+    // Modified animate function
+    function animate() {
+        requestAnimationFrame(animate);
+        
+        if (camera.position.distanceTo(lastCameraPosition) > 1) {
+            distanceUpdateNeeded = true;
+            lastCameraPosition.copy(camera.position);
+        }
+        
+        if (distanceUpdateNeeded) {
+            updateLOD();
+            distanceUpdateNeeded = false;
+        }
+        
+        controls.update();
+        renderer.render(scene, camera);
+    }
 
     animate();
 }
