@@ -96,7 +96,8 @@ title: Netball Manurewa Texture - Thermal Inspection
         // Load GLB model
         const loader = new THREE.GLTFLoader();
         loader.load(
-            '{{ site.baseurl }}/models/NetballThermal.glb',
+            // Update the URL to use raw content
+            'https://media.githubusercontent.com/media/Cheng-BuiltScan/Cheng-BuiltScan.github.io/main/models/your-model.glb',
             function(gltf) {
                 const model = gltf.scene;
                 scene.add(model);
@@ -105,8 +106,13 @@ title: Netball Manurewa Texture - Thermal Inspection
                 const center = box.getCenter(new THREE.Vector3());
                 const size = box.getSize(new THREE.Vector3());
                 const maxDim = Math.max(size.x, size.y, size.z);
-                camera.position.z = maxDim * 2;
+                
+                const fov = camera.fov * (Math.PI / 180);
+                const cameraZ = Math.abs(maxDim / Math.sin(fov / 2) / 2);
+                camera.position.z = cameraZ;
+                
                 controls.target.copy(center);
+                controls.update();
             },
             function(xhr) {
                 console.log((xhr.loaded / xhr.total * 100) + '% loaded');
