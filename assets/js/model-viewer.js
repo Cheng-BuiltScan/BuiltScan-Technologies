@@ -38,11 +38,8 @@ function init(modelPath) {
     camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 1000);
     camera.position.z = 5;
 
-    // Renderer setup with performance options
-    renderer = new THREE.WebGLRenderer({ 
-        antialias: true,
-        powerPreference: "high-performance"
-    });
+    // Renderer setup
+    renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(container.clientWidth, container.clientHeight);
     container.appendChild(renderer.domElement);
@@ -60,70 +57,31 @@ function init(modelPath) {
         RIGHT: THREE.MOUSE.DOLLY
     };
 
-    // Loading manager setup
-    const loadingManager = new THREE.LoadingManager();
-    
-    // Create loading indicator
-    const loadingDiv = document.createElement('div');
-    loadingDiv.style.position = 'absolute';
-    loadingDiv.style.top = '50%';
-    loadingDiv.style.left = '50%';
-    loadingDiv.style.transform = 'translate(-50%, -50%)';
-    loadingDiv.style.background = 'rgba(0,0,0,0.7)';
-    loadingDiv.style.color = 'white';
-    loadingDiv.style.padding = '20px';
-    loadingDiv.style.borderRadius = '5px';
-    container.appendChild(loadingDiv);
-
-    loadingManager.onProgress = function(url, itemsLoaded, itemsTotal) {
-        const progress = (itemsLoaded / itemsTotal * 100).toFixed(0);
-        loadingDiv.textContent = `Loading: ${progress}%`;
-    };
-
     // Load GLB model
-    const loader = new THREE.GLTFLoader(loadingManager);
+    const loader = new THREE.GLTFLoader();
     loader.load(
         modelPath,
         function(gltf) {
-            if (currentModel) {
-                currentModel.traverse(disposeNode);
-                scene.remove(currentModel);
-            }
-
             const model = gltf.scene;
-            currentModel = model;
-
-            // Simple optimization: enable frustum culling
-            model.traverse((node) => {
-                if (node.isMesh) {
-                    node.frustumCulled = true;
-                }
-            });
-
-            scene.add(model);
-            
-            // Center and fit model
-            const box = new THREE.Box3().setFromObject(model);
-            const center = box.getCenter(new THREE.Vector3());
-            const size = box.getSize(new THREE.Vector3());
-            const maxDim = Math.max(size.x, size.y, size.z);
-            
-            const fov = camera.fov * (Math.PI / 180);
-            const cameraZ = Math.abs(maxDim / Math.sin(fov / 2) / 2);
-            camera.position.z = cameraZ;
-            
-            controls.target.copy(center);
-            controls.update();
-
-            // Remove loading indicator
-            container.removeChild(loadingDiv);
+                scene.add(model);
+                
+                const box = new THREE.Box3().setFromObject(model);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+                const maxDim = Math.max(size.x, size.y, size.z);
+                
+                const fov = camera.fov * (Math.PI / 180);
+                const cameraZ = Math.abs(maxDim / Math.sin(fov / 2) / 2);
+                camera.position.z = cameraZ;
+                
+                controls.target.copy(center);
+                controls.update();
         },
         function(xhr) {
             console.log((xhr.loaded / xhr.total * 100) + '% loaded');
         },
         function(error) {
             console.error('Error loading model:', error);
-            loadingDiv.textContent = 'Error loading model';
         }
     );
 
@@ -135,7 +93,7 @@ function init(modelPath) {
     directionalLight.position.set(0, 1, 0);
     scene.add(directionalLight);
 
-    // Add event listeners
+    // Add all event listeners here
     window.addEventListener('resize', onWindowResize, false);
     window.addEventListener('keydown', function(event) {
         if (event.key === 'Escape') {
@@ -144,13 +102,6 @@ function init(modelPath) {
     });
     renderer.domElement.addEventListener('click', onModelClick);
     renderer.domElement.addEventListener('mousemove', onMouseMove);
-
-    // Simple animate function without LOD
-    function animate() {
-        requestAnimationFrame(animate);
-        controls.update();
-        renderer.render(scene, camera);
-    }
 
     animate();
 }
