@@ -164,17 +164,12 @@ function init(modelPath) {
 
     // Load GLB model
     const loader = new THREE.GLTFLoader(loadingManager);
-    
-    // Add custom error handling
-    const onError = function(error) {
-        // Log error but don't stop loading
-        console.warn('GLTFLoader warning:', error);
-    };
 
     loader.load(
         modelPath,
         function(gltf) {
             if (currentModel) {
+                currentModel.traverse(disposeNode);
                 scene.remove(currentModel);
             }
 
@@ -186,18 +181,23 @@ function init(modelPath) {
                 if (node.isMesh) {
                     node.frustumCulled = true;
                     
-                    // Handle materials even if UV warnings occurred
                     if (node.material) {
-                        // Keep original material settings
-                        const material = node.material;
-                        
-                        if (material.map) {
-                            material.map.anisotropy = renderer.capabilities.getMaxAnisotropy();
-                            material.map.needsUpdate = true;
+                        // Force use of first UV set
+                        if (node.geometry.attributes.uv) {
+                            node.geometry.setAttribute('uv', node.geometry.attributes.uv);
                         }
                         
-                        // Make sure material updates
-                        material.needsUpdate = true;
+                        // Handle material maps
+                        if (node.material.map) {
+                            const originalTexture = node.material.map.clone();
+                            originalTexture.needsUpdate = true;
+                            const cacheKey = originalTexture.uuid;
+                            textureCache.set(cacheKey, originalTexture);
+                            
+                            // Set initial low-res texture
+                            node.material.map = loadTextureLOD(originalTexture, 512);
+                            node.material.needsUpdate = true;
+                        }
                     }
                 }
             });
@@ -222,7 +222,10 @@ function init(modelPath) {
         function(xhr) {
             console.log((xhr.loaded / xhr.total * 100) + '% loaded');
         },
-        onError  // Use custom error handler
+        function(error) {
+            console.error('Error loading model:', error);
+            loadingDiv.textContent = 'Error loading model';
+        }
     );
 
     // Lighting setup
