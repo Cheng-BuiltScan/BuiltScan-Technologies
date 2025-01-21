@@ -164,43 +164,40 @@ function init(modelPath) {
 
     // Load GLB model
     const loader = new THREE.GLTFLoader(loadingManager);
+    
+    // Add custom error handling
+    const onError = function(error) {
+        // Log error but don't stop loading
+        console.warn('GLTFLoader warning:', error);
+    };
+
     loader.load(
         modelPath,
         function(gltf) {
             if (currentModel) {
-                currentModel.traverse(disposeNode);
                 scene.remove(currentModel);
             }
 
             const model = gltf.scene;
             currentModel = model;
 
-            // Initial texture setup
+            // Handle materials and textures carefully
             model.traverse((node) => {
                 if (node.isMesh) {
                     node.frustumCulled = true;
                     
-                    if (node.material.map) {
-                        // Store original texture settings
-                        const originalTexture = node.material.map;
-                        const originalSettings = {
-                            wrapS: originalTexture.wrapS,
-                            wrapT: originalTexture.wrapT,
-                            repeat: originalTexture.repeat.clone(),
-                            offset: originalTexture.offset.clone(),
-                            center: originalTexture.center.clone(),
-                            rotation: originalTexture.rotation,
-                            mapping: originalTexture.mapping
-                        };
+                    // Handle materials even if UV warnings occurred
+                    if (node.material) {
+                        // Keep original material settings
+                        const material = node.material;
                         
-                        // Create low-res version while maintaining settings
-                        const lowResTexture = loadTextureLOD(originalTexture, 512);
+                        if (material.map) {
+                            material.map.anisotropy = renderer.capabilities.getMaxAnisotropy();
+                            material.map.needsUpdate = true;
+                        }
                         
-                        // Apply original settings
-                        Object.assign(lowResTexture, originalSettings);
-                        
-                        node.material.map = lowResTexture;
-                        node.material.needsUpdate = true;
+                        // Make sure material updates
+                        material.needsUpdate = true;
                     }
                 }
             });
@@ -220,16 +217,12 @@ function init(modelPath) {
             controls.target.copy(center);
             controls.update();
 
-            // Remove loading indicator
             container.removeChild(loadingDiv);
         },
         function(xhr) {
             console.log((xhr.loaded / xhr.total * 100) + '% loaded');
         },
-        function(error) {
-            console.error('Error loading model:', error);
-            loadingDiv.textContent = 'Error loading model';
-        }
+        onError  // Use custom error handler
     );
 
     // Lighting setup
