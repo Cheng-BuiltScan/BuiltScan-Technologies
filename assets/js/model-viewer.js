@@ -10,22 +10,11 @@ let polygonPoints = [];
 let polygonLines = [];
 let firstPointMarker = null;
 let currentModel = null;
-
-function disposeNode(node) {
-    if (node.geometry) {
-        node.geometry.dispose();
-    }
-    
-    if (node.material) {
-        if (node.material.map) node.material.map.dispose();
-        if (node.material.lightMap) node.material.lightMap.dispose();
-        if (node.material.bumpMap) node.material.bumpMap.dispose();
-        if (node.material.normalMap) node.material.normalMap.dispose();
-        if (node.material.specularMap) node.material.specularMap.dispose();
-        if (node.material.envMap) node.material.envMap.dispose();
-        node.material.dispose();
-    }
-}
+// Add these global variables
+let textureLoadQueue = [];
+let isLoadingTextures = false;
+let loadingProgress = { model: 0, textures: 0 };
+let memoryInfo = { geometries: 0, textures: 0 };
 
 function init(modelPath) {
     // Scene setup
@@ -38,12 +27,9 @@ function init(modelPath) {
     camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 1000);
     camera.position.z = 5;
 
-    // Renderer setup with optimizations
-    renderer = new THREE.WebGLRenderer({ 
-        antialias: true,
-        powerPreference: "high-performance"
-    });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Limit pixel ratio
+    // Renderer setup
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(container.clientWidth, container.clientHeight);
     container.appendChild(renderer.domElement);
 
@@ -60,29 +46,62 @@ function init(modelPath) {
         RIGHT: THREE.MOUSE.DOLLY
     };
 
-    // Loading manager setup
-    const manager = new THREE.LoadingManager();
-    manager.onProgress = function(url, itemsLoaded, itemsTotal) {
-        console.log('Loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.');
+    // Add loading UI
+    const loadingOverlay = document.createElement('div');
+    loadingOverlay.className = 'loading-overlay';
+    loadingOverlay.innerHTML = `
+        <div class="loading-container">
+            <div class="loading-bar-container">
+                <div class="loading-bar"></div>
+            </div>
+            <div class="loading-text">Loading: 0%</div>
+            <div class="memory-info">Memory usage: 0MB</div>
+        </div>
+    `;
+    container.appendChild(loadingOverlay);
+
+    // Setup loading manager
+    const loadingManager = new THREE.LoadingManager();
+    loadingManager.onProgress = (url, loaded, total) => {
+        const progress = (loaded / total) * 100;
+        const loadingBar = loadingOverlay.querySelector('.loading-bar');
+        const loadingText = loadingOverlay.querySelector('.loading-text');
+        
+        loadingBar.style.width = `${progress}%`;
+        loadingText.textContent = `Loading: ${progress.toFixed(1)}%`;
+
+        if (progress >= 100) {
+            setTimeout(() => {
+                loadingOverlay.style.opacity = '0';
+                setTimeout(() => loadingOverlay.remove(), 1000);
+            }, 500);
+        }
     };
 
-    // GLTFLoader setup with DRACO
-    const loader = new THREE.GLTFLoader(manager);
-    const dracoLoader = new THREE.DRACOLoader();
-    dracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
-    loader.setDRACOLoader(dracoLoader);
+    const loader = new THREE.GLTFLoader(loadingManager);
+
+    // Progressive loading setup
+    const textureLoadQueue = [];
+    let isLoadingTextures = false;
 
     // Load GLB model
     loader.load(
         modelPath,
         function(gltf) {
             const model = gltf.scene;
-            
-            // Optimize textures and materials
+
+            // Queue textures for progressive loading
             model.traverse((node) => {
                 if (node.isMesh) {
                     if (node.material.map) {
-                        node.material.map.anisotropy = renderer.capabilities.getMaxAnisotropy();
+                        const texturePath = node.material.map.image.src;
+                        const priority = camera.position.distanceTo(node.position);
+                        textureLoadQueue.push({
+                            material: node.material,
+                            texturePath: texturePath,
+                            priority: priority
+                        });
+                        node.material.map = null;
                     }
                     node.frustumCulled = true;
                 }
@@ -102,19 +121,19 @@ function init(modelPath) {
             
             controls.target.copy(center);
             controls.update();
+
+            // Start loading textures progressively
+            processTextureQueue();
         },
         function(xhr) {
-            if (xhr.lengthComputable) {
-                const percent = (xhr.loaded / xhr.total * 100).toFixed(2);
-                console.log(percent + '% loaded');
-            }
+            console.log((xhr.loaded / xhr.total * 100) + '% loaded');
         },
         function(error) {
             console.error('Error loading model:', error);
         }
     );
 
-    // Lighting setup
+    // Lighting
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambientLight);
     
@@ -134,6 +153,7 @@ function init(modelPath) {
 
     animate();
 }
+
 
 // Viewing mode controls
 function setOrbitMode() {
