@@ -38,12 +38,12 @@ function init(modelPath) {
     camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 1000);
     camera.position.z = 5;
 
-    // Renderer setup
+    // Renderer setup with optimizations
     renderer = new THREE.WebGLRenderer({ 
         antialias: true,
         powerPreference: "high-performance"
     });
-    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Limit pixel ratio
     renderer.setSize(container.clientWidth, container.clientHeight);
     container.appendChild(renderer.domElement);
 
@@ -60,56 +60,19 @@ function init(modelPath) {
         RIGHT: THREE.MOUSE.DOLLY
     };
 
-    // Lighting setup
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-    scene.add(ambientLight);
-    
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
-    directionalLight.position.set(0, 1, 0);
-    scene.add(directionalLight);
-
     // Loading manager setup
     const manager = new THREE.LoadingManager();
     manager.onProgress = function(url, itemsLoaded, itemsTotal) {
         console.log('Loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.');
     };
 
-    // Enhanced loader setup
+    // GLTFLoader setup with DRACO
     const loader = new THREE.GLTFLoader(manager);
-    
-    // Add DRACO decoder
     const dracoLoader = new THREE.DRACOLoader();
     dracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
     loader.setDRACOLoader(dracoLoader);
 
-    // Configure texture loader
-    THREE.TextureLoader.prototype.crossOrigin = 'anonymous';
-    
-    // Memory management functions
-    const dispose = (obj) => {
-        if (obj.geometry) {
-            obj.geometry.dispose();
-        }
-        if (obj.material) {
-            if (Array.isArray(obj.material)) {
-                obj.material.forEach(material => disposeMaterial(material));
-            } else {
-                disposeMaterial(obj.material);
-            }
-        }
-    };
-
-    const disposeMaterial = (material) => {
-        Object.keys(material).forEach(prop => {
-            if (!material[prop]) return;
-            if (material[prop].isTexture) {
-                material[prop].dispose();
-            }
-        });
-        material.dispose();
-    };
-
-    // Enhanced model loading
+    // Load GLB model
     loader.load(
         modelPath,
         function(gltf) {
@@ -118,13 +81,9 @@ function init(modelPath) {
             // Optimize textures and materials
             model.traverse((node) => {
                 if (node.isMesh) {
-                    // Enable texture optimization
                     if (node.material.map) {
                         node.material.map.anisotropy = renderer.capabilities.getMaxAnisotropy();
-                        node.material.map.encoding = THREE.sRGBEncoding;
                     }
-                    
-                    // Enable frustum culling
                     node.frustumCulled = true;
                 }
             });
@@ -144,18 +103,24 @@ function init(modelPath) {
             controls.target.copy(center);
             controls.update();
         },
-        // Progress callback
         function(xhr) {
             if (xhr.lengthComputable) {
                 const percent = (xhr.loaded / xhr.total * 100).toFixed(2);
                 console.log(percent + '% loaded');
             }
         },
-        // Error callback
         function(error) {
             console.error('Error loading model:', error);
         }
     );
+
+    // Lighting setup
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
+    
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    directionalLight.position.set(0, 1, 0);
+    scene.add(directionalLight);
 
     // Add event listeners
     window.addEventListener('resize', onWindowResize, false);
@@ -167,12 +132,7 @@ function init(modelPath) {
     renderer.domElement.addEventListener('click', onModelClick);
     renderer.domElement.addEventListener('mousemove', onMouseMove);
 
-    // Start animation loop
     animate();
-
-    // Log WebGL memory info for debugging
-    console.log('WebGL memory:', renderer.info.memory);
-    console.log('WebGL render:', renderer.info.render);
 }
 
 // Viewing mode controls
