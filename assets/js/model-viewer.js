@@ -44,7 +44,7 @@ function init(modelPath) {
     renderer.setSize(container.clientWidth, container.clientHeight);
     container.appendChild(renderer.domElement);
 
-    // Controls setup
+    // Controls setup - update for new module format
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
@@ -57,8 +57,9 @@ function init(modelPath) {
         RIGHT: THREE.MOUSE.DOLLY
     };
 
-    // Load GLB model
+    // Load GLB model - update for new module format
     const loader = new THREE.GLTFLoader();
+
     loader.load(
         modelPath,
         function(gltf) {
