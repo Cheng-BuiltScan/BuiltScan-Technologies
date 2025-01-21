@@ -39,12 +39,15 @@ function init(modelPath) {
     camera.position.z = 5;
 
     // Renderer setup
-    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer = new THREE.WebGLRenderer({ 
+        antialias: true,
+        powerPreference: "high-performance"
+    });
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(container.clientWidth, container.clientHeight);
     container.appendChild(renderer.domElement);
 
-    // Controls setup - update for new module format
+    // Controls setup
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
@@ -57,35 +60,6 @@ function init(modelPath) {
         RIGHT: THREE.MOUSE.DOLLY
     };
 
-    // Load GLB model - update for new module format
-    const loader = new THREE.GLTFLoader();
-
-    loader.load(
-        modelPath,
-        function(gltf) {
-            const model = gltf.scene;
-                scene.add(model);
-                
-                const box = new THREE.Box3().setFromObject(model);
-                const center = box.getCenter(new THREE.Vector3());
-                const size = box.getSize(new THREE.Vector3());
-                const maxDim = Math.max(size.x, size.y, size.z);
-                
-                const fov = camera.fov * (Math.PI / 180);
-                const cameraZ = Math.abs(maxDim / Math.sin(fov / 2) / 2);
-                camera.position.z = cameraZ;
-                
-                controls.target.copy(center);
-                controls.update();
-        },
-        function(xhr) {
-            console.log((xhr.loaded / xhr.total * 100) + '% loaded');
-        },
-        function(error) {
-            console.error('Error loading model:', error);
-        }
-    );
-
     // Lighting setup
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambientLight);
@@ -94,7 +68,96 @@ function init(modelPath) {
     directionalLight.position.set(0, 1, 0);
     scene.add(directionalLight);
 
-    // Add all event listeners here
+    // Loading manager setup
+    const manager = new THREE.LoadingManager();
+    manager.onProgress = function(url, itemsLoaded, itemsTotal) {
+        console.log('Loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.');
+    };
+
+    // Enhanced loader setup
+    const loader = new THREE.GLTFLoader(manager);
+    
+    // Add DRACO decoder
+    const dracoLoader = new THREE.DRACOLoader();
+    dracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
+    loader.setDRACOLoader(dracoLoader);
+
+    // Configure texture loader
+    THREE.TextureLoader.prototype.crossOrigin = 'anonymous';
+    
+    // Memory management functions
+    const dispose = (obj) => {
+        if (obj.geometry) {
+            obj.geometry.dispose();
+        }
+        if (obj.material) {
+            if (Array.isArray(obj.material)) {
+                obj.material.forEach(material => disposeMaterial(material));
+            } else {
+                disposeMaterial(obj.material);
+            }
+        }
+    };
+
+    const disposeMaterial = (material) => {
+        Object.keys(material).forEach(prop => {
+            if (!material[prop]) return;
+            if (material[prop].isTexture) {
+                material[prop].dispose();
+            }
+        });
+        material.dispose();
+    };
+
+    // Enhanced model loading
+    loader.load(
+        modelPath,
+        function(gltf) {
+            const model = gltf.scene;
+            
+            // Optimize textures and materials
+            model.traverse((node) => {
+                if (node.isMesh) {
+                    // Enable texture optimization
+                    if (node.material.map) {
+                        node.material.map.anisotropy = renderer.capabilities.getMaxAnisotropy();
+                        node.material.map.encoding = THREE.sRGBEncoding;
+                    }
+                    
+                    // Enable frustum culling
+                    node.frustumCulled = true;
+                }
+            });
+
+            scene.add(model);
+            
+            // Center and adjust camera
+            const box = new THREE.Box3().setFromObject(model);
+            const center = box.getCenter(new THREE.Vector3());
+            const size = box.getSize(new THREE.Vector3());
+            const maxDim = Math.max(size.x, size.y, size.z);
+            
+            const fov = camera.fov * (Math.PI / 180);
+            const cameraZ = Math.abs(maxDim / Math.sin(fov / 2) / 2);
+            camera.position.z = cameraZ;
+            
+            controls.target.copy(center);
+            controls.update();
+        },
+        // Progress callback
+        function(xhr) {
+            if (xhr.lengthComputable) {
+                const percent = (xhr.loaded / xhr.total * 100).toFixed(2);
+                console.log(percent + '% loaded');
+            }
+        },
+        // Error callback
+        function(error) {
+            console.error('Error loading model:', error);
+        }
+    );
+
+    // Add event listeners
     window.addEventListener('resize', onWindowResize, false);
     window.addEventListener('keydown', function(event) {
         if (event.key === 'Escape') {
@@ -104,7 +167,12 @@ function init(modelPath) {
     renderer.domElement.addEventListener('click', onModelClick);
     renderer.domElement.addEventListener('mousemove', onMouseMove);
 
+    // Start animation loop
     animate();
+
+    // Log WebGL memory info for debugging
+    console.log('WebGL memory:', renderer.info.memory);
+    console.log('WebGL render:', renderer.info.render);
 }
 
 // Viewing mode controls
